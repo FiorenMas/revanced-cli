@@ -17,31 +17,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
-          # Make sure the release step uses its own credentials:
-          # https://github.com/cycjimmy/semantic-release-action#private-packages
           persist-credentials: false
           fetch-depth: 0
-
-      - name: Cache Node modules
+      - name: Cache
         uses: actions/cache@v3
         with:
           path: |
+            ${{ runner.home }}/.gradle/caches
+            ${{ runner.home }}/.gradle/wrapper
+            .gradle
+            build
             node_modules
-          key: npm-${{ hashFiles('package-lock.json') }}
-
-      - name: Cache Gradle
-        uses: burrunan/gradle-cache-action@v1
-
+          key: ${{ runner.os }}-gradle-npm-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', 'package-lock.json') }}
       - name: Build
-        # Cleaning is necessary to avoid uploading two identical artifacts with different versions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew clean --no-daemon
-
       - name: Setup semantic-release
         run: npm install
-
       - name: Release
         env:
-          GITHUB_TOKEN: ${{ secrets.REPOSITORY_PUSH_ACCESS }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm exec semantic-release
